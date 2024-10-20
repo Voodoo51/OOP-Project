@@ -12,21 +12,35 @@ public class WorldGenerator
     private int width;
     private int height;
     private double scale;
+    private double treeScale;
+    private double rockScale;
     private int tileSize;
 
     private double noiseMap[][];
     private double fallOffMap[][];
     private int map[][];
     private List<Texture> textures;
+    private List<Texture> resourceTextures;
 
-    WorldGenerator(int width, int height, double scale, int tileSize)
+    private double treeNoiseMap[][];
+    private double rockNoiseMap[][];
+    private int resourceMap[][];
+
+    //Send seed via network
+    WorldGenerator(int width, int height, double scale, double treeScale, double rockScale, int tileSize)
     {
         this.width = width;
         this.height = height;
         this.scale = scale;
+        this.treeScale = treeScale;
+        this.rockScale = rockScale;
         this.tileSize = tileSize;
         noiseMap = new double[width][height];
+        treeNoiseMap = new double[width][height];
+        rockNoiseMap = new double[width][height];
+        resourceMap = new int[width][height];
         textures = new ArrayList<Texture>();
+        resourceTextures = new ArrayList<Texture>();
         map = new int[width][height];
         LoadTextures();
         Generate();
@@ -36,6 +50,8 @@ public class WorldGenerator
     {
         Random rand = new Random();
         int seed = rand.nextInt();
+        int treeSeed = rand.nextInt();
+        int rockSeed = rand.nextInt();
 
         noiseMap = new double[width][height];
         fallOffMap = new double[width][height];
@@ -50,7 +66,9 @@ public class WorldGenerator
             for(int y = 0; y < height; y++)
             {
                 noiseMap[x][y] = NoiseGenerator.noise3_ImproveXY(seed, x * scale, y * scale, 0.0);
-
+                treeNoiseMap[x][y] = NoiseGenerator.noise2_ImproveX(treeSeed, x * treeScale, y * treeScale);
+                rockNoiseMap[x][y] = NoiseGenerator.noise2_ImproveX(rockSeed, x * rockScale, y * rockScale);
+                resourceMap[x][y] = -1;
                 Jaylib.Vector2 point = new Jaylib.Vector2(x,y);
                 double fVal = Jaylib.Vector2Distance(point, center) / maxDistance;
                 double fPower = Math.pow(fVal, a);
@@ -62,13 +80,25 @@ public class WorldGenerator
         {
             for(int y = 0; y < height; y++)
             {
-                if(noiseMap[x][y] - fallOffMap[x][y] > 0.0)
+                if(noiseMap[x][y] - fallOffMap[x][y] > -0.1)
                 {
                     map[x][y] = 1; //Glade1.jpg
                 }
                 else
                 {
                     map[x][y] = 0;
+                }
+
+                if(noiseMap[x][y] - fallOffMap[x][y] > -0.1)
+                {
+                    if(treeNoiseMap[x][y] > 0.3)
+                    {
+                        resourceMap[x][y] = 0;
+                    }
+                    else if(rockNoiseMap[x][y] > 0.4)
+                    {
+                        resourceMap[x][y] = 1;
+                    }
                 }
             }
         }
@@ -88,6 +118,11 @@ public class WorldGenerator
                 }
                 //DrawRectangle(x * tileSize, y * tileSize, tileSize, tileSize, new Jaylib.Color(val, val, val, 255));
                 DrawTexture(textures.get(map[x][y]), x * tileSize, y * tileSize, WHITE);
+
+                if(resourceMap[x][y] != -1)
+                {
+                    DrawTexture(resourceTextures.get(resourceMap[x][y]), x * tileSize, y * tileSize, WHITE);
+                }
             }
         }
     }
@@ -100,5 +135,12 @@ public class WorldGenerator
         textures.add(LoadTexture("Textures/Glade1.jpg"));
         textures.get(1).width(tileSize);
         textures.get(1).height(tileSize);
+
+        resourceTextures.add(LoadTexture("Textures/testTree.png"));
+        resourceTextures.get(0).width(tileSize);
+        resourceTextures.get(0).height(tileSize);
+        resourceTextures.add(LoadTexture("Textures/testRock.png"));
+        resourceTextures.get(1).width(tileSize);
+        resourceTextures.get(1).height(tileSize);
     }
 }
