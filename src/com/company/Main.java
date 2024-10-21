@@ -10,16 +10,19 @@ public class Main {
     public static void main(String[] args) {
         InitWindow(800, 800, "Demo");
         SetTargetFPS(60);
+        //ToggleBorderlessWindowed();
         Camera2D camera = new Camera2D();
-        Texture tex = LoadTexture("Textures/awesomeface.png");
+        Texture tex = LoadTexture("Textures/Glade1.png");
         tex.width(20);
         tex.height(20);
-        WorldGenerator worldGenerator = new WorldGenerator(100, 100, 0.1, 0.05, 0.05, 8);
+        WorldGenerator worldGenerator = new WorldGenerator(100, 100, 0.05, 0.1, 0.1, 8);
         Raylib.Vector2 target = new Jaylib.Vector2(0,0);
         float zoom = 1.0f;
         camera.zoom(zoom);
-        camera.offset(target);
+        camera.offset(new Jaylib.Vector2(GetScreenWidth()/2, GetScreenHeight()/2));
         camera.target(target);
+
+        Collision playerCollider = new Collision(new Transform(0,0,20,20));
 
         float x = 0;
         float y = 0;
@@ -55,9 +58,20 @@ public class Main {
             {
                 zoom -= 0.1f;
             }
+            playerCollider.transform.x = (int)x - 10;
+            playerCollider.transform.y = (int)y - 10;
 
-            DrawTexture(tex, 100, 100, WHITE);
+            for(int i = 0; i < Collision.trees.size(); i++)
+            {
+                if(playerCollider.Collides(Collision.trees.get(i)))
+                {
+                    System.out.println("COLLIDES");
+                    break;
+                }
+            }
             worldGenerator.Draw();
+            DrawTexture(tex, (int)target.x() - 10, (int)target.y() - 10, WHITE);
+
             target.x(x);
             target.y(y);
             camera.target(target);
