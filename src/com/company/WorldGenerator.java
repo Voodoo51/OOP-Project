@@ -26,7 +26,7 @@ public class WorldGenerator
 
     private double treeNoiseMap[][];
     private double rockNoiseMap[][];
-    private int resourceMap[][];
+    public int resourceMap[][];
 
 
     private float t = 0;
@@ -129,25 +129,7 @@ public class WorldGenerator
         {
             for (int y = 0; y < height; y++)
             {
-                double noise = noiseMap[x][y] - fallOffMap[x][y];
-                int val = (int)(noise * 255);
-                int val2 = (int)(treeNoiseMap[x][y] * 255);
-                int val3 = (int)(fallOffMap[x][y] * 255);
-                if(val < 0)
-                {
-                    val = 0;
-                }
-                if(val2 < 0)
-                {
-                    val2 = 0;
-                }
-                //DrawRectangle(x * tileSize, y * tileSize, tileSize, tileSize, new Jaylib.Color(val, val, val, 255));
-                //DrawRectangle(x * tileSize, y * tileSize, tileSize, tileSize, new Jaylib.Color(val3, val3, val3, 255));
                 DrawTexture(textures.get(map[x][y]), x * tileSize, y * tileSize, WHITE);
-                //float sin = (float)(Math.sin(t/10000)/2 + 0.5);
-                //int valS = (int)(sin * 255);
-                //DrawTexture(textures.get(map[x][y]), x * tileSize, y * tileSize, new Jaylib.Color(valS, valS, valS, 255));
-                t += 0.01;
                 if(resourceMap[x][y] != -1)
                 {
                     DrawTexture(resourceTextures.get(resourceMap[x][y]), x * tileSize, y * tileSize, WHITE);
