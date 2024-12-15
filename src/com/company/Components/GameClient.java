@@ -44,7 +44,7 @@ public class GameClient {
 
             //channel.closeFuture().sync();
         } finally {
-            //group.shutdownGracefully();
+            group.shutdownGracefully();
         }
     }
 }

@@ -12,13 +12,14 @@ import static com.raylib.Jaylib.*;
 //test
 public class Main {
 
+    public static Camera2D camera;
     public static void main(String[] args) throws Exception {
         InitWindow(1920, 1080, "Demo");
         SetTargetFPS(60);
         //ToggleBorderlessWindowed();
         WorldGenerator worldGenerator = new WorldGenerator(100, 100, 0.05, 0.1, 0.1, 8);
 
-        Camera2D camera = new Camera2D();
+        camera = new Camera2D();
         camera.offset(new Jaylib.Vector2(GetScreenWidth()/2.0f, GetScreenHeight()/2.0f));
 
         Player player = new Player("Textures/human.png", new Transform(0,0,20,20), worldGenerator, camera);

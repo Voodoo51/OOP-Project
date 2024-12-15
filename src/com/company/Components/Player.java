@@ -2,7 +2,6 @@ package com.company.Components;
 
 import com.raylib.Jaylib;
 import com.raylib.Raylib;
-import com.raylib.Raylib.*;
 
 import static com.raylib.Jaylib.WHITE;
 import static com.raylib.Raylib.*;
@@ -20,6 +19,7 @@ public class Player implements IUpdate
     private Camera2D camera;
 
     private GameClient gameClient;
+    private BuildSystem buildSystem;
 
     public Player(String path, Transform transform, WorldGenerator worldGenerator, Camera2D camera) throws Exception {
         texture = LoadTexture(path);
@@ -31,6 +31,8 @@ public class Player implements IUpdate
         ComponentManager.updateComponents.add(this);
         this.worldGenerator = worldGenerator;
         this.camera = camera;
+
+        buildSystem = new BuildSystem();
 
         wood = new ResourceUI("Textures/woodIcon.png",
                 new Transform(1500, 60, 120, 120),
@@ -60,6 +62,40 @@ public class Player implements IUpdate
         if (IsKeyDown(KEY_W))
             moveY -= 1;
 
+        if(IsKeyPressed(KEY_TAB))
+        {
+            if(buildSystem.state == BuildSystemState.Off)
+                buildSystem.state = BuildSystemState.InMenu;
+            else if(buildSystem.state == BuildSystemState.InMenu || buildSystem.state == BuildSystemState.StructureSelected)
+            {
+                buildSystem.state = BuildSystemState.Off;
+                /*
+                if(buildSystem.structure != null)
+                {
+                    Structure.structures.remove(buildSystem.structure);
+                    ComponentManager.updateComponents.remove(buildSystem.structure);
+                    //buildSystem.currentStructure = null;
+                }
+                 */
+            }
+        }
+
+        if(IsMouseButtonPressed(0))
+        {
+            if(buildSystem.state == BuildSystemState.StructureSelected)
+                HandleBuilding();
+            else
+                HandleCollect();
+        }
+
+        //Also updates position
+        HandleCollision(moveX, moveY);
+
+        DrawTexture(texture, transform.x - transform.width/2, transform.y - transform.height/2, WHITE);
+    }
+
+    public void HandleCollision(int moveX, int moveY)
+    {
         int prevX = transform.x;
         int prevY = transform.y;
         for (int i = 0; i < worldGenerator.resourceMap.size(); i++)
@@ -86,18 +122,46 @@ public class Player implements IUpdate
             }
         }
 
+        for (int i = 0; i < Structure.structures.size(); i++)
+        {
+            //tempX += moveX;
+            collision.transform.x = prevX + moveX - transform.width/2; //(int)(tempX + moveX) - 10;
+            collision.transform.y = prevY - transform.height/2;//(int)(tempY) - 10;
+
+            if (collision.Collides(Structure.structures.get(i).collision))
+            {
+                Jaylib.Vector2 mtv = collision.GetMTV(Structure.structures.get(i).collision);
+                moveX = 0;
+                prevX -= mtv.x();
+            }
+
+            collision.transform.x = prevX - transform.width/2; //(int)(tempX + moveX) - 10;
+            collision.transform.y = prevY + moveY - transform.height/2;
+
+            if (collision.Collides(Structure.structures.get(i).collision))
+            {
+                Jaylib.Vector2 mtv = collision.GetMTV(Structure.structures.get(i).collision);
+                moveY = 0;
+                prevY -= mtv.y();
+            }
+        }
+
         transform.x = prevX + moveX;
         transform.y = prevY + moveY;
+    }
 
+    public void HandleCollect()
+    {
         Raylib.Vector2 mousePosR = Jaylib.GetMousePosition();
         mousePosR.x(mousePosR.x() + transform.width/2);
         mousePosR.y(mousePosR.y() + transform.height/2);
         mousePosR = GetScreenToWorld2D(mousePosR, camera);
         Jaylib.Vector2 mousePos = new Jaylib.Vector2(mousePosR.x(), mousePosR.y());
 
-        for (int i = 0; i < worldGenerator.resourceMap.size(); i++) {
-            if (worldGenerator.resourceMap.get(i).collision.Collides(mousePos)) {
-
+        for (int i = 0; i < worldGenerator.resourceMap.size(); i++)
+        {
+            if (worldGenerator.resourceMap.get(i).collision.Collides(mousePos))
+            {
                 if(worldGenerator.resourceMap.get(i).type == ResourceType.Wood)
                     wood.count++;
                 else if(worldGenerator.resourceMap.get(i).type == ResourceType.Rock)
@@ -108,7 +172,27 @@ public class Player implements IUpdate
                 break;
             }
         }
+    }
 
-        DrawTexture(texture, transform.x - transform.width/2, transform.y - transform.height/2, WHITE);
+    public void HandleBuilding()
+    {
+        for (int i = 0; i < worldGenerator.resourceMap.size(); i++)
+        {
+            if (worldGenerator.resourceMap.get(i).collision.Collides(buildSystem.currentStructureCollision))
+                return;
+        }
+
+        for(int i = 0; i < Structure.structures.size(); i++)
+        {
+            if(Structure.structures.get(i).collision.Collides(buildSystem.currentStructureCollision))
+                return;
+        }
+
+        if(collision.Collides(buildSystem.currentStructureCollision)) return;
+
+        Structure structure = new Structure(buildSystem.currentStructure);
+        Structure.structures.add(structure);
+        ComponentManager.updateComponents.add(structure);
+        buildSystem.state = BuildSystemState.Off;
     }
 }
