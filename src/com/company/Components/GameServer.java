@@ -8,11 +8,17 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.buffer.Unpooled;
 import io.netty.util.CharsetUtil;
 
+import java.util.Random;
+
 
 public class GameServer {
     private final int port;
 
-    public GameServer(int port) {
+    private int seed;
+    public GameServer(int port)
+    {
+        Random rand = new Random();
+        seed = rand.nextInt();
         this.port = port;
     }
 
@@ -28,9 +34,11 @@ public class GameServer {
                             String msg = packet.content().toString(CharsetUtil.UTF_8);
                             System.out.println("Received: " + msg);
 
+
+                            char[] chars = ("" + seed).toCharArray();
                             // Odpowiedź do klienta
                             ctx.writeAndFlush(new DatagramPacket(
-                                    Unpooled.copiedBuffer("ACK: " + msg, CharsetUtil.UTF_8),
+                                    Unpooled.copiedBuffer(chars, CharsetUtil.UTF_8),
                                     packet.sender()
                             ));
 

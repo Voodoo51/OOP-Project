@@ -8,5 +8,8 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="jaylib-5.0.0-0" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-transport:4.1.115.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-buffer:4.1.115.Final" level="project" />
+    <orderEntry type="library" name="Maven: io.netty:netty-common:4.1.115.Final" level="project" />
   </component>
 </module>

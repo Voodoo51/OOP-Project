@@ -18,6 +18,7 @@ public class WorldGenerator implements IUpdate
     private double treeScale;
     private double rockScale;
     private int tileSize;
+    private int seed;
 
     private double noiseMap[][];
     private double fallOffMap[][];
@@ -40,6 +41,7 @@ public class WorldGenerator implements IUpdate
         this.treeScale = treeScale;
         this.rockScale = rockScale;
         this.tileSize = tileSize;
+        this.seed = seed;
         noiseMap = new double[width][height];
         treeNoiseMap = new double[width][height];
         rockNoiseMap = new double[width][height];
@@ -47,22 +49,25 @@ public class WorldGenerator implements IUpdate
         resourceTextures = new ArrayList<Texture>();
         map = new int[width][height];
         LoadTextures();
-        Generate();
 
         ComponentManager.updateComponents.add(this);
     }
 
-    private void Generate()
+    public void Generate(int seed)
     {
+        int treeSeed = seed - 100000;
+        int rockSeed = seed - 200000;
+        /*
         Random rand = new Random();
         int seed = rand.nextInt();
         int treeSeed = rand.nextInt();
         int rockSeed = rand.nextInt();
+         */
 
         noiseMap = new double[width][height];
         fallOffMap = new double[width][height];
         Jaylib.Vector2 center = new Jaylib.Vector2(width/2, height/2);
-        float maxDistance = Jaylib.Vector2Distance(center, new Jaylib.Vector2(0, 0));
+        float maxDistance = Vector2Distance(center, new Jaylib.Vector2(0, 0));
 
         double a = 3;
         double b = 1.1f;
@@ -76,7 +81,7 @@ public class WorldGenerator implements IUpdate
                 rockNoiseMap[x][y] = NoiseGenerator.noise2_ImproveX(rockSeed, x * rockScale, y * rockScale);
                 //resourceMap[x][y] = null;//to mozna pewnie pominac
                 Jaylib.Vector2 point = new Jaylib.Vector2(x,y);
-                double fVal = Jaylib.Vector2Distance(point, center) / maxDistance;
+                double fVal = Vector2Distance(point, center) / maxDistance;
                 double fPower = Math.pow(fVal, a);
                 fVal = fPower/(fPower + Math.pow(b - b*fVal, a));
                 fallOffMap[x][y] = lerp( -0.5, 1, fVal);
@@ -89,6 +94,8 @@ public class WorldGenerator implements IUpdate
             {
                 if(noiseMap[x][y] - fallOffMap[x][y] > 0.1)
                 {
+                    //TODO(): FIX THIS
+                    Random rand = new Random();
                     int rVal = rand.nextInt(2);
 
                     if(rVal == 0)

@@ -3,6 +3,8 @@ package com.company.Components;
 import com.raylib.Jaylib;
 import com.raylib.Raylib;
 
+import java.util.Random;
+
 import static com.raylib.Jaylib.WHITE;
 import static com.raylib.Raylib.*;
 import static com.raylib.Raylib.KEY_W;
@@ -21,7 +23,14 @@ public class Player implements IUpdate
     private GameClient gameClient;
     private BuildSystem buildSystem;
 
-    public Player(String path, Transform transform, WorldGenerator worldGenerator, Camera2D camera) throws Exception {
+    static boolean generated = false;
+    boolean isMimic = false;
+
+    private int playerNumber;
+
+    public Player(int playerNumber, String path, Transform transform, WorldGenerator worldGenerator, Camera2D camera) throws Exception
+    {
+        this.playerNumber = playerNumber;
         texture = LoadTexture(path);
         this.transform = transform;
         collision = new Collision(this.transform);
@@ -46,11 +55,30 @@ public class Player implements IUpdate
 
         gameClient = new GameClient("localhost", 8080);
         gameClient.start();
+
+
+        //Random rand = new Random();
+        //int seed = rand.nextInt();
+
+        if(!generated)
+        {
+            worldGenerator.Generate(gameClient.seed);
+            generated = true;
+        }
+        else if(generated)
+        {
+            isMimic = true;
+        }
     }
 
     @Override
-    public void Update()
-    {
+    public void Update() {
+        if(isMimic)
+        {
+            DrawTexture(texture, transform.x - transform.width/2, transform.y - transform.height/2, WHITE);
+            return;
+        }
+
         int moveX = 0;
         int moveY = 0;
         if (IsKeyDown(KEY_A))
@@ -90,6 +118,15 @@ public class Player implements IUpdate
 
         //Also updates position
         HandleCollision(moveX, moveY);
+
+        /*
+        try
+        {
+            gameClient.SendPositionData();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+         */
 
         DrawTexture(texture, transform.x - transform.width/2, transform.y - transform.height/2, WHITE);
     }
