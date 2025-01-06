@@ -13,22 +13,19 @@ import static com.raylib.Jaylib.*;
 //test
 public class Main {
 
-    public static Camera2D camera;
-
     public static void InitGame() throws Exception {
 
 
-        InitWindow(1920, 1080, "Demo");
+        InitWindow(1920 - 10, 1080 - 10, "Demo");
         SetTargetFPS(60);
         //ToggleBorderlessWindowed();
         WorldGenerator worldGenerator = new WorldGenerator(100, 100, 0.05, 0.1, 0.1, 8);
 
-
-        camera = new Camera2D();
+        Camera2D camera = new Camera2D();
         camera.offset(new Jaylib.Vector2(GetScreenWidth()/2.0f, GetScreenHeight()/2.0f));
 
         Player player = new Player(1,"Textures/human.png", new Transform(0,0,20,20), worldGenerator, camera);
-        Player player2 = new Player(2,"Textures/human.png", new Transform(0,0,20,20), worldGenerator, camera);
+        //Player player2 = new Player(2,"Textures/human.png", new Transform(0,0,20,20), worldGenerator, camera);
         CameraFollow cameraFollow = new CameraFollow(player.transform, camera);
 
         ComponentManager componentManager = new ComponentManager();
@@ -45,6 +42,7 @@ public class Main {
             DrawFPS(20, 20);
             EndDrawing();
         }
+        player.gameClient.ShutDown();
         CloseWindow();
     }
 

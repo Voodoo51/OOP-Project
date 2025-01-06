@@ -7,7 +7,6 @@ import javax.swing.plaf.PanelUI;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.company.Main.camera;
 import static com.raylib.Jaylib.WHITE;
 import static com.raylib.Raylib.*;
 
@@ -52,13 +51,15 @@ public class BuildSystem implements IUpdateUI, IUpdate
     public StructureData currentStructure = null;
     public Collision currentStructureCollision;
     public int structure;
+    public Camera2D camera;
 
-
-    public BuildSystem()
+    public BuildSystem(Camera2D camera)
     {
         int halfX = (int) (GetScreenWidth()/2.0f);
         int halfY = (int) (GetScreenHeight()/2.0f);
         int offset = 200;
+
+        this.camera = camera;
 
         ComponentManager.updateUIComponents.add(this);
         ComponentManager.updateComponents.add(this);
