@@ -23,6 +23,8 @@ public class GameClient {
     EventLoopGroup group;
     private Player player;
 
+    public boolean allPlayersConnected = false;
+
     public GameClient(String host, int port, Player player) {
         this.host = host;
         this.port = port;
@@ -47,7 +49,10 @@ public class GameClient {
                             {
                                 System.out.println("Server says: " + msg);
                             }
-
+                            if(words[0].equals("allPlayersConnected"))
+                            {
+                                allPlayersConnected = true;
+                            }
                             if(words[0].equals("seed"))
                             {
                                 seed = Integer.parseInt(words[1]);
@@ -71,12 +76,55 @@ public class GameClient {
                             {
                                 player.OnNewPlayerJoined(Integer.parseInt(words[1]));
                             }
+                            if(words[0].equals("enemySpawned"))
+                            {
+                                player.OnEnemySpawned(Integer.parseInt(words[1]), Integer.parseInt(words[2]), Integer.parseInt(words[3]));
+                            }
+                            if(words[0].equals("enemyPosData"))
+                            {
+                                player.UpdateEnemyPosition(Integer.parseInt(words[1]), Integer.parseInt(words[2]), Integer.parseInt(words[3]));
+                            }
+                            if(words[0].equals("enemyKilled"))
+                            {
+                                player.OnEnemyKilled(Integer.parseInt(words[1]));
+                            }
+                            if(words[0].equals("structurePlaced"))
+                            {
+                                int ID = Integer.parseInt(words[1]);
+                                int x = Integer.parseInt(words[2]);
+                                int y = Integer.parseInt(words[3]);
+                                int w = Integer.parseInt(words[4]);
+                                int h = Integer.parseInt(words[5]);
+                                String type = words[6];
+                                player.OnStructureReceived(ID, x, y, w, h, type);
+                            }
+                            if(words[0].equals("gameOver"))
+                            {
+                                player.OnGameOver(Integer.parseInt(words[1]));
+                            }
+                            if(words[0].equals("structureDestroyed"))
+                            {
+                                player.OnStructureDestroyed(Integer.parseInt(words[1]));
+                            }
+                            if(words[0].equals("time"))
+                            {
+                                player.UpdateTime(Integer.parseInt(words[1]));
+                            }
                             if(words[0].equals("resourceDestroy"))
                             {
-                                if(Integer.parseInt(words[1]) != player.playerNumber)
-                                {
-                                    player.UpdateResources(Integer.parseInt(words[2]));
-                                }
+                                player.UpdateResources(Integer.parseInt(words[1]), Integer.parseInt(words[2]));
+                            }
+                            if(words[0].equals("projectileShot"))
+                            {
+                                player.OnProjectileShot(Integer.parseInt(words[1]), Integer.parseInt(words[2]));
+                            }
+                            if(words[0].equals("projectilePos"))
+                            {
+                                player.UpdateProjectilePosition(Integer.parseInt(words[1]), Integer.parseInt(words[2]), Integer.parseInt(words[3]));
+                            }
+                            if(words[0].equals("projectileDestroyed"))
+                            {
+                                player.OnProjectileDestroyed(Integer.parseInt(words[1]));
                             }
                             if(words[0].equals("shutdown"))
                             {
@@ -114,6 +162,24 @@ public class GameClient {
         }
     }
 
+    public void RequestMapState()
+    {
+        String posData = "mapState";
+        ChannelFuture future = channel.writeAndFlush(new DatagramPacket(
+                Unpooled.copiedBuffer(posData, CharsetUtil.UTF_8),
+                socket
+        ));
+    }
+
+    public void RequestEnemies()
+    {
+        String data = "enemiesList";
+        ChannelFuture future = channel.writeAndFlush(new DatagramPacket(
+                Unpooled.copiedBuffer(data, CharsetUtil.UTF_8),
+                socket
+        ));
+    }
+
     public void SendPosition(int ID, int x, int y)
     {
         String posData = "playerPosData," + ID + "," + x + "," + y;
@@ -123,11 +189,21 @@ public class GameClient {
         ));
     }
 
-    public void SendResourceDestroy(int ID, int rID)
+
+    public void SendResourceDestroy(int ID, int rID, int x, int y)
     {
-        String posData = "resourceDestroy," + ID + "," + rID;
+        String posData = "resourceDestroy," + ID + "," + rID + "," + x + "," + y;
         ChannelFuture future = channel.writeAndFlush(new DatagramPacket(
                 Unpooled.copiedBuffer(posData, CharsetUtil.UTF_8),
+                socket
+        ));
+    }
+
+    public void SendStructure(int ID, int x, int y, int w, int h, String type)
+    {
+        String structureData = "structurePlaced," + ID + "," + x + "," + y + "," + w + "," + h + "," + type;
+        ChannelFuture future = channel.writeAndFlush(new DatagramPacket(
+                Unpooled.copiedBuffer(structureData, CharsetUtil.UTF_8),
                 socket
         ));
     }

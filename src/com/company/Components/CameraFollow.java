@@ -15,19 +15,14 @@ public class CameraFollow implements IUpdate
     {
         this.target = target;
         this.camera = camera;
-        zoom = 1.0f;
+        zoom = 5.0f;
+        camera.zoom(zoom);
         ComponentManager.updateComponents.add(this);
     }
 
     @Override
     public void Update()
     {
-        if (GetMouseWheelMove() > 0)
-            zoom += 0.1f;
-        if (GetMouseWheelMove() < 0)
-            zoom -= 0.1f;
-
         camera.target(new Jaylib.Vector2(target.x, target.y));
-        camera.zoom(zoom);
     }
 }

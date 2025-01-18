@@ -5,20 +5,28 @@ import com.raylib.Raylib;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import static com.raylib.Jaylib.WHITE;
 import static com.raylib.Raylib.*;
 import static com.raylib.Raylib.KEY_W;
 
+class OnlineProjectile
+{
+    public Transform transform;
+
+    public OnlineProjectile(Transform transform)
+    {
+        this.transform = transform;
+    }
+}
+
 class OnlinePlayer
 {
     public Transform transform;
-    public Raylib.Texture texture;
     public Collision collision;
     public int playerNumber;
 
-    public OnlinePlayer(Transform transform, String path, int playerNumber)
+    public OnlinePlayer(Transform transform, int playerNumber)
     {
         this.transform = new Transform(transform.x, transform.y, transform.width, transform.height);
         //texture = LoadTexture(path);
@@ -29,40 +37,238 @@ class OnlinePlayer
     }
 }
 
-public class Player implements IUpdate
+enum EnemyDir
+{
+    None,
+    Up,
+    Down,
+    Left,
+    Right
+}
+
+class OnlineEnemy
+{
+    List<int[]> path = new ArrayList<>();
+    public Transform transform;
+    public int enemyID;
+    public Collision collision;
+    public int health = 3;
+    private float speed = 1;
+
+    public boolean pickNext = true;
+    private EnemyDir dir = EnemyDir.None;
+    private int[] dst = new int[2];
+
+    public float t = 0;
+    private float cooldown = 10;
+
+    public void Update()
+    {
+        t += 0.16666f;
+    }
+
+    public boolean CanDamage()
+    {
+        if(t >= cooldown)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    public OnlineEnemy(Transform transform, int enemyID)
+    {
+        this.transform = transform;
+        this.enemyID = enemyID;
+        collision = new Collision(this.transform);
+    }
+
+    public void MoveAlongPath()
+    {
+        if(path.size() == 0)
+        {
+            Jaylib.Vector2 ourPos = new Jaylib.Vector2(transform.x, transform.y);
+            Jaylib.Vector2 dest =  new Jaylib.Vector2(50 * 8, 50 * 8);
+            if(Jaylib.Vector2Distance(ourPos, dest) > 3)
+            {
+                Raylib.Vector2 dirToHouse = Jaylib.Vector2Subtract(dest, ourPos);
+
+                dirToHouse = Jaylib.Vector2Normalize(dirToHouse);
+
+                transform.x += dirToHouse.x() * speed;
+                transform.y += dirToHouse.y() * speed;
+            }
+            //transform.x += path.
+        }
+        else
+        {
+            /*
+            dst = path.get(0);
+            Jaylib.Vector2 ourPos = new Jaylib.Vector2(transform.x, transform.y);
+            Jaylib.Vector2 dest =  new Jaylib.Vector2(dst[0] * 8, dst[1] * 8);
+            if(Jaylib.Vector2Distance(ourPos, dest) > 3)
+            {
+                Raylib.Vector2 nextTileDir = Jaylib.Vector2Subtract(dest, ourPos);
+
+                nextTileDir = Jaylib.Vector2Normalize(nextTileDir);
+
+                transform.x += nextTileDir.x() * speed;
+                transform.y += nextTileDir.y() * speed;
+                System.out.println("DIR: " + (int)nextTileDir.x() * speed + " : " + (int)nextTileDir.y() * speed );
+            }
+            else
+            {
+                path.remove(0);
+            }
+
+            */
+            //System.out.println("");
+
+            int xOffset = 0;
+            int yOffset = 0;
+            if(dir == EnemyDir.None)
+            {
+                dst = path.get(0);
+                path.remove(0);
+                float deltaX = Math.abs(transform.x - dst[0]*8 + xOffset);
+                float deltaY = Math.abs(transform.y - dst[1]*8 + yOffset);
+                if(deltaX > deltaY)
+                {
+                    if(transform.x < dst[0] * 8)
+                    {
+                        dir = EnemyDir.Right;
+                        //transform.x += speed;
+                    }
+                    else
+                    {
+                        dir = EnemyDir.Left;
+                        //transform.x -= speed;
+                    }
+                }
+                else
+                {
+                    if(transform.y < dst[1] * 8)
+                    {
+                        dir = EnemyDir.Up;
+                        //transform.y += speed;
+                    }
+                    else
+                    {
+                        dir = EnemyDir.Down;
+                        //transform.y -= speed;
+                    }
+                }
+            }
+            else if(dir == EnemyDir.Up)
+            {
+                if(transform.y > dst[1] * 8 + yOffset)
+                    dir = EnemyDir.None;
+            }
+            else if(dir == EnemyDir.Down)
+            {
+                if(transform.y < dst[1] * 8 + yOffset)
+                    dir = EnemyDir.None;
+            }
+            else if(dir == EnemyDir.Right)
+            {
+                if(transform.x > dst[0] * 8 + xOffset)
+                    dir = EnemyDir.None;
+            }
+            else if(dir == EnemyDir.Left)
+            {
+                if(transform.x < dst[0] * 8 + xOffset)
+                    dir = EnemyDir.None;
+            }
+
+            switch (dir)
+            {
+                case EnemyDir.Up:
+                    transform.y += speed;
+                    break;
+                case EnemyDir.Down:
+                    transform.y -= speed;
+                    break;
+                case EnemyDir.Right:
+                    transform.x += speed;
+                    break;
+                case EnemyDir.Left:
+                    transform.x -= speed;
+                    break;
+            }
+
+        }
+    }
+}
+
+enum GameState
+{
+    InProgress,
+    Lost,
+    Won
+}
+
+public class Player implements IUpdate, IUpdateUI
 {
     public Transform transform;
-    private Raylib.Texture texture;
+    private List<Texture> playerTextures = new ArrayList<Texture>();
+    private Texture enemyTexture;
+    private Texture houseTexture;
+    private Texture projectileTexture;
+
     private Collision collision;
 
-    private ResourceUI wood;
-    private ResourceUI rock;
+    public ResourceUI wood;
+    public ResourceUI rock;
     private WorldGenerator worldGenerator;
     private Camera2D camera;
 
     private List<OnlinePlayer> onlinePlayers = new ArrayList<>();
+    private List<OnlineEnemy> onlineEnemies = new ArrayList<>();
+    private List<OnlineProjectile> onlineProjectiles = new ArrayList<>();
+
     public GameClient gameClient;
     private BuildSystem buildSystem;
 
     static boolean generated = false;
-    boolean isMimic = false;
-
+    private float time = 0;
+    private GameState gameState = GameState.InProgress;
+    public boolean canExit = false;
+    private float t = 0;
+    private float timeBeforeShutdown = 10.0f;
     public int playerNumber;
 
-    public Player(int playerNumber, String path, Transform transform, WorldGenerator worldGenerator, Camera2D camera) throws Exception
+    public Player(int playerNumber, Transform transform, WorldGenerator worldGenerator, Camera2D camera) throws Exception
     {
         this.playerNumber = playerNumber;
-        texture = LoadTexture(path);
+        enemyTexture = LoadTexture("Textures/enemy.png");
+        enemyTexture.width(transform.width);
+        enemyTexture.height(transform.height);
+        houseTexture = LoadTexture("Textures/houseTest.png");
+        houseTexture.width(8);
+        houseTexture.height(8);
+        projectileTexture = LoadTexture("Textures/boulderTest.png");
+        projectileTexture.width(6);
+        projectileTexture.height(6);
         this.transform = transform;
         collision = new Collision(this.transform);
-        texture.width(transform.width);
-        texture.height(transform.height);
+
+
+        playerTextures.add(LoadTexture("Textures/player1.png"));
+        playerTextures.add(LoadTexture("Textures/player2.png"));
+        playerTextures.add(LoadTexture("Textures/player2.png"));
+        for(int i = 0; i < playerTextures.size(); i++)
+        {
+            playerTextures.get(i).width(transform.width);
+            playerTextures.get(i).height(transform.height);
+        }
 
         ComponentManager.updateComponents.add(this);
+        ComponentManager.updateUIComponents.add(this);
         this.worldGenerator = worldGenerator;
         this.camera = camera;
 
-        buildSystem = new BuildSystem(camera);
+        buildSystem = new BuildSystem(camera, this);
 
         wood = new ResourceUI("Textures/woodIcon.png",
                 new Transform(1500, 60, 120, 120),
@@ -70,8 +276,8 @@ public class Player implements IUpdate
                 ResourceType.Wood);
 
         rock = new ResourceUI("Textures/rockIcon.png",
-                new Transform(1000, 60, 120, 120),
-                new Transform(1150, 100, 0, 50),
+                new Transform(1100, 60, 120, 120),
+                new Transform(1250, 100, 0, 50),
                 ResourceType.Rock);
 
         gameClient = new GameClient("localhost", 8080, this);
@@ -90,30 +296,51 @@ public class Player implements IUpdate
             worldGenerator.Generate(gameClient.seed);
             generated = true;
         }
-        else if(generated)
+
+        Raylib.Vector2 pos = worldGenerator.GetRandomLandPositionWithinRadius(this.transform, 5);
+        this.transform.x = (int) pos.x();
+        this.transform.y = (int) pos.y();
+
+        gameClient.RequestMapState();
+        gameClient.RequestEnemies();
+
+        while (!gameClient.allPlayersConnected)
         {
-            isMimic = true;
+            System.out.println("waiting for players");
         }
     }
 
     @Override
     public void Update()
     {
-
         for(int i = 0; i < onlinePlayers.size(); i++)
         {
-            DrawTexture(texture,
+            DrawTexture(playerTextures.get(onlinePlayers.get(i).playerNumber - 1),
                     onlinePlayers.get(i).transform.x - onlinePlayers.get(i).transform.width/2,
                     onlinePlayers.get(i).transform.y  - onlinePlayers.get(i).transform.height/2,
                     WHITE);
         }
-        /*
-        if(isMimic)
+
+        for(int i = 0; i < onlineProjectiles.size(); i++)
         {
-            DrawTexture(texture, gameClient.otherPlayerX - transform.width/2, gameClient.otherPlayerY  - transform.height/2, WHITE);
-            return;
+            DrawTexture(projectileTexture,
+                    onlineProjectiles.get(i).transform.x,
+                    onlineProjectiles.get(i).transform.y,
+                    WHITE);
         }
-         */
+
+        for(int i = 0; i < onlineEnemies.size(); i++)
+        {
+            DrawTexture(enemyTexture,
+                    onlineEnemies.get(i).transform.x,
+                    onlineEnemies.get(i).transform.y,
+                    WHITE);
+        }
+
+        DrawTexture(houseTexture, 50 * 8, 50 * 8, WHITE);
+        DrawTexture(playerTextures.get(playerNumber - 1), transform.x - transform.width/2, transform.y - transform.height/2, WHITE);
+
+        if(gameState != GameState.InProgress) return;
 
         int moveX = 0;
         int moveY = 0;
@@ -133,14 +360,6 @@ public class Player implements IUpdate
             else if(buildSystem.state == BuildSystemState.InMenu || buildSystem.state == BuildSystemState.StructureSelected)
             {
                 buildSystem.state = BuildSystemState.Off;
-                /*
-                if(buildSystem.structure != null)
-                {
-                    Structure.structures.remove(buildSystem.structure);
-                    ComponentManager.updateComponents.remove(buildSystem.structure);
-                    //buildSystem.currentStructure = null;
-                }
-                 */
             }
         }
 
@@ -155,17 +374,7 @@ public class Player implements IUpdate
         //Also updates position
         HandleCollision(moveX, moveY);
 
-        /*
-        try
-        {
-            gameClient.SendPositionData();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-         */
-
         gameClient.SendPosition(playerNumber, transform.x, transform.y);
-        DrawTexture(texture, transform.x - transform.width/2, transform.y - transform.height/2, WHITE);
     }
 
     public void HandleCollision(int moveX, int moveY)
@@ -191,6 +400,30 @@ public class Player implements IUpdate
             if (collision.Collides(worldGenerator.resourceMap.get(i).collision))
             {
                 Jaylib.Vector2 mtv = collision.GetMTV(worldGenerator.resourceMap.get(i).collision);
+                moveY = 0;
+                prevY -= mtv.y();
+            }
+        }
+
+        for (int i = 0; i < worldGenerator.waterCollision.size(); i++)
+        {
+            //tempX += moveX;
+            collision.transform.x = prevX + moveX - transform.width/2; //(int)(tempX + moveX) - 10;
+            collision.transform.y = prevY - transform.height/2;//(int)(tempY) - 10;
+
+            if (collision.Collides(worldGenerator.waterCollision.get(i)))
+            {
+                Jaylib.Vector2 mtv = collision.GetMTV(worldGenerator.waterCollision.get(i));
+                moveX = 0;
+                prevX -= mtv.x();
+            }
+
+            collision.transform.x = prevX - transform.width/2; //(int)(tempX + moveX) - 10;
+            collision.transform.y = prevY + moveY - transform.height/2;
+
+            if (collision.Collides(worldGenerator.waterCollision.get(i)))
+            {
+                Jaylib.Vector2 mtv = collision.GetMTV(worldGenerator.waterCollision.get(i));
                 moveY = 0;
                 prevY -= mtv.y();
             }
@@ -226,7 +459,7 @@ public class Player implements IUpdate
 
     public void HandleCollect()
     {
-        Raylib.Vector2 mousePosR = Jaylib.GetMousePosition();
+        Vector2 mousePosR = GetMousePosition();
         mousePosR.x(mousePosR.x() + transform.width/2);
         mousePosR.y(mousePosR.y() + transform.height/2);
         mousePosR = GetScreenToWorld2D(mousePosR, camera);
@@ -241,8 +474,11 @@ public class Player implements IUpdate
                 else if(worldGenerator.resourceMap.get(i).type == ResourceType.Rock)
                     rock.count++;
 
+                int x, y = 0;
+                x = worldGenerator.resourceMap.get(i).collision.transform.x;
+                y = worldGenerator.resourceMap.get(i).collision.transform.y;
                 worldGenerator.resourceMap.remove(i);
-                gameClient.SendResourceDestroy(playerNumber, i);
+                gameClient.SendResourceDestroy(playerNumber, i, x, y);
                 break;
             }
         }
@@ -253,6 +489,12 @@ public class Player implements IUpdate
         for (int i = 0; i < worldGenerator.resourceMap.size(); i++)
         {
             if (worldGenerator.resourceMap.get(i).collision.Collides(buildSystem.currentStructureCollision))
+                return;
+        }
+
+        for (int i = 0; i < worldGenerator.waterCollision.size(); i++)
+        {
+            if (worldGenerator.waterCollision.get(i).Collides(buildSystem.currentStructureCollision))
                 return;
         }
 
@@ -271,8 +513,20 @@ public class Player implements IUpdate
         if(collision.Collides(buildSystem.currentStructureCollision)) return;
 
         Structure structure = new Structure(buildSystem.currentStructure);
+
+        wood.count -= buildSystem.currentStructure.woodCost;
+        rock.count -= buildSystem.currentStructure.rockCost;
+
         Structure.structures.add(structure);
         ComponentManager.updateComponents.add(structure);
+        gameClient.SendStructure(
+                playerNumber,
+                structure.collision.transform.x,
+                structure.collision.transform.y,
+                structure.collision.transform.width,
+                structure.collision.transform.height,
+                structure.type.toString());
+
         buildSystem.state = BuildSystemState.Off;
     }
 
@@ -288,7 +542,35 @@ public class Player implements IUpdate
             }
         }
 
-        onlinePlayers.add(new OnlinePlayer(new Transform(0, 0, transform.width, transform.height), "Textures/human.png", playerNumber));
+        onlinePlayers.add(new OnlinePlayer(new Transform(0, 0, transform.width, transform.height), playerNumber));
+    }
+
+    public void OnStructureReceived(int playerNumber, int x, int y, int w, int h, String type)
+    {
+        if(this.playerNumber == playerNumber) return;
+
+        StructureType sType = null;
+
+        if(type.equals("WoodWall"))
+            sType = StructureType.WoodWall;
+        if(type.equals("StoneWall"))
+            sType = StructureType.StoneWall;
+        if(type.equals("Tower"))
+            sType = StructureType.Tower;
+
+
+        Structure structure = new Structure(new Collision(new Transform(x, y, w, h)), sType);
+        Structure.structures.add(structure);
+        ComponentManager.updateComponents.add(structure); //needed to make it render itself
+    }
+
+    public void OnStructureDestroyed(int sID)
+    {
+        if(Structure.structures.size() == 0) return;;
+
+        Structure structure = Structure.structures.get(sID);
+        Structure.structures.remove(structure);
+        ComponentManager.updateComponents.remove(structure);
     }
 
     public void UpdatePlayerPosition(int playerNumber, int x, int y)
@@ -319,8 +601,112 @@ public class Player implements IUpdate
         onlinePlayers.remove(index);
     }
 
-    public void UpdateResources(int rID)
+    public void UpdateResources(int playerNumber, int rID)
     {
+        if(this.playerNumber == playerNumber) return;
+
         worldGenerator.resourceMap.remove(rID);
+    }
+
+    public void OnEnemySpawned(int enemyID, int x, int y)
+    {
+        onlineEnemies.add(new OnlineEnemy(new Transform(x,y, 8, 8), enemyID));
+    }
+
+    public void OnEnemyKilled(int enemyID)
+    {
+        int indexToRemove = -1;
+        for(int i = 0; i < onlineEnemies.size(); i++)
+        {
+            if(onlineEnemies.get(i).enemyID == enemyID)
+            {
+                indexToRemove = i;
+            }
+        }
+        if(indexToRemove != -1)
+        {
+            onlineEnemies.remove(indexToRemove);
+        }
+    }
+
+    public void OnProjectileShot(int x, int y)
+    {
+        onlineProjectiles.add(new OnlineProjectile(new Transform(x,y, 6, 6)));
+    }
+
+    public void UpdateProjectilePosition(int pID, int x, int y)
+    {
+        onlineProjectiles.get(pID).transform.x = x;
+        onlineProjectiles.get(pID).transform.y = y;
+    }
+
+    public void OnProjectileDestroyed(int pID)
+    {
+        onlineProjectiles.remove(pID);
+    }
+
+    public void UpdateEnemyPosition(int enemyID, int x, int y)
+    {
+        for(int i = 0; i < onlineEnemies.size(); i++)
+        {
+            if(enemyID == onlineEnemies.get(i).enemyID)
+            {
+                onlineEnemies.get(i).transform.x = x;
+                onlineEnemies.get(i).transform.y = y;
+                break;
+            }
+        }
+    }
+
+    public void OnGameOver(int state)
+    {
+        if(state == 1)
+        {
+            gameState = GameState.Won;
+        }
+        if(state == 0)
+        {
+            gameState = GameState.Lost;
+        }
+    }
+
+    public void DrawWonScreen()
+    {
+        DrawText(Raylib.TextFormat( "YOU WON"), 1920/2, 1080/2, 100, WHITE);
+    }
+
+    public void DrawLostScreen()
+    {
+        DrawText(Raylib.TextFormat( "YOU LOST"), 1920/2, 1080/2, 100, WHITE);
+    }
+
+    public void UpdateTime(float time)
+    {
+        this.time = time;
+    }
+
+    @Override
+    public void UpdateUI()
+    {
+
+        if(t >= timeBeforeShutdown)
+        {
+            canExit = true;
+        }
+
+        if(gameState == GameState.Lost)
+        {
+            t += 0.016666f;
+            DrawLostScreen();
+        }
+        else if(gameState == GameState.Won)
+        {
+            t += 0.016666f;
+            DrawWonScreen();
+        }
+
+        int minutes = (int) (time / 60);
+        int seconds = (int) (time - (minutes * 60));
+        DrawText(Raylib.TextFormat( + minutes + ":" + seconds), 1920/2 - 100, 100, 100, WHITE);
     }
 }

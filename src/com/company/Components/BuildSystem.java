@@ -12,13 +12,31 @@ import static com.raylib.Raylib.*;
 
 class StructureData
 {
-    String path;
     Transform transform;
+    StructureType type;
+    public int woodCost = 0;
+    public int rockCost = 0;
 
-    public StructureData(String path, Transform transform)
+    public StructureData(Transform transform, StructureType type)
     {
-        this.path = path;
         this.transform = transform;
+        this.type = type;
+
+        if(type == StructureType.WoodWall)
+        {
+            woodCost = 2;
+            rockCost = 0;
+        }
+        if(type == StructureType.StoneWall)
+        {
+            woodCost = 0;
+            rockCost = 2;
+        }
+        if(type == StructureType.Tower)
+        {
+            woodCost = 8;
+            rockCost = 1;
+        }
     }
 }
 
@@ -48,13 +66,16 @@ public class BuildSystem implements IUpdateUI, IUpdate
     public BuildSystemState state = BuildSystemState.Off;
     public List<StructureUI> structureUIs = new ArrayList<>();
     public List<Texture> textures = new ArrayList<>();
+    public List<Texture> resourcesTextures = new ArrayList<>();
     public StructureData currentStructure = null;
     public Collision currentStructureCollision;
     public int structure;
     public Camera2D camera;
+    private Player player;
 
-    public BuildSystem(Camera2D camera)
+    public BuildSystem(Camera2D camera, Player player)
     {
+        this.player = player;
         int halfX = (int) (GetScreenWidth()/2.0f);
         int halfY = (int) (GetScreenHeight()/2.0f);
         int offset = 200;
@@ -64,26 +85,30 @@ public class BuildSystem implements IUpdateUI, IUpdate
         ComponentManager.updateUIComponents.add(this);
         ComponentManager.updateComponents.add(this);
 
-        currentStructureCollision = new Collision(new Transform(0,0, 16, 16));
+        currentStructureCollision = new Collision(new Transform(0,0, 6, 6));
 
-        textures.add(LoadTexture("Textures/woodWall.png"));
+        textures.add(LoadTexture("Textures/wall1.png"));
         textures.add(LoadTexture("Textures/stoneWall.jpg"));
         textures.add(LoadTexture("Textures/towerIcon.png"));
 
+        resourcesTextures.add(LoadTexture("Textures/woodIcon.png"));
+        resourcesTextures.add(LoadTexture("Textures/rockIcon.png"));
+        resourcesTextures.get(0).width(50);
+        resourcesTextures.get(0).height(50);
+        resourcesTextures.get(1).width(50);
+        resourcesTextures.get(1).height(50);
+
         structureUIs.add(new StructureUI(0,
-                new Collision(new Transform(halfX - offset, halfY + 300, 100, 100))
-                ,new StructureData("Textures/woodWall.png",
-                new Transform(0,0,16,16))));
+                new Collision(new Transform(halfX - offset, halfY + 300, 100, 100)),
+                new StructureData(new Transform(0,0,6,6), StructureType.WoodWall)));
         offset = 0;
         structureUIs.add(new StructureUI(1,
-                new Collision(new Transform(halfX - offset, halfY + 300, 100, 100))
-                ,new StructureData("Textures/stoneWall.jpg",
-                new Transform(0,0,16,16))));
+                new Collision(new Transform(halfX - offset, halfY + 300, 100, 100)),
+                new StructureData(new Transform(0,0,6,6), StructureType.StoneWall)));
         offset = -200;
         structureUIs.add(new StructureUI(2,
-                new Collision(new Transform(halfX - offset, halfY + 300, 100, 100))
-                ,new StructureData("Textures/towerIcon.png",
-                new Transform(0,0,16,16))));
+                new Collision(new Transform(halfX - offset, halfY + 300, 100, 100)),
+                new StructureData( new Transform(0,0,6,8), StructureType.Tower)));
     }
 
     @Override
@@ -98,6 +123,13 @@ public class BuildSystem implements IUpdateUI, IUpdate
                 textures.get(structureUIs.get(i).textureID).width(structureUIs.get(i).collision.transform.width);
                 textures.get(structureUIs.get(i).textureID).height(structureUIs.get(i).collision.transform.height);
                 DrawTexture(textures.get(structureUIs.get(i).textureID), structureUIs.get(i).collision.transform.x, structureUIs.get(i).collision.transform.y, WHITE);
+
+                DrawTexture(resourcesTextures.get(0), structureUIs.get(i).collision.transform.x, structureUIs.get(i).collision.transform.y + 100, WHITE);
+                DrawText(Raylib.TextFormat( structureUIs.get(i).structureData.woodCost + ""), structureUIs.get(i).collision.transform.x + 50, structureUIs.get(i).collision.transform.y + 100, 20, WHITE);
+
+                DrawTexture(resourcesTextures.get(1), structureUIs.get(i).collision.transform.x + 50, structureUIs.get(i).collision.transform.y + 100, WHITE);
+                DrawText(Raylib.TextFormat( structureUIs.get(i).structureData.rockCost + ""), structureUIs.get(i).collision.transform.x + 100, structureUIs.get(i).collision.transform.y + 100, 20, WHITE);
+
             }
 
             if(IsMouseButtonPressed(0))
@@ -106,11 +138,16 @@ public class BuildSystem implements IUpdateUI, IUpdate
                 Jaylib.Vector2 mousePos = new Jaylib.Vector2(mousePosR.x(), mousePosR.y());
 
                 for(int i = 0; i < structureUIs.size(); i++)
-                    if(structureUIs.get(i).collision.Collides(mousePos))
+                    if(structureUIs.get(i).collision.Collides(mousePos) &&
+                       player.wood.count >= structureUIs.get(i).structureData.woodCost &&
+                       player.rock.count >= structureUIs.get(i).structureData.rockCost)
                     {
+
                         state = BuildSystemState.StructureSelected;
                         currentStructure = structureUIs.get(i).structureData;
                         //structure = structureUIs.get(i).texture;
+                        currentStructureCollision.transform.width = structureUIs.get(i).structureData.transform.width;
+                        currentStructureCollision.transform.height = structureUIs.get(i).structureData.transform.height;
 
                         structure = structureUIs.get(i).textureID;
                         //structure = new Structure(structureUIs.get(i).structureData);
