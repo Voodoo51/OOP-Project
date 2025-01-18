@@ -162,7 +162,7 @@ public class GameServer {
     private House house = new House(new Collision(new Transform(50 * 8, 50 * 8, 8, 8)));
     int tick = 0;
     int accumulator = 0;
-    int playerCountRequired = 2;
+    int playerCountRequired = 1;
 
     public int obstacleMap[][];
 

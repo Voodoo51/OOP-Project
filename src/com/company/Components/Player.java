@@ -3,8 +3,13 @@ package com.company.Components;
 import com.raylib.Jaylib;
 import com.raylib.Raylib;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import static com.raylib.Jaylib.WHITE;
 import static com.raylib.Raylib.*;
@@ -237,6 +242,8 @@ public class Player implements IUpdate, IUpdateUI
     private float t = 0;
     private float timeBeforeShutdown = 10.0f;
     public int playerNumber;
+    private int winCount;
+    private String winCountFilePath;
 
     public Player(int playerNumber, Transform transform, WorldGenerator worldGenerator, Camera2D camera) throws Exception
     {
@@ -252,6 +259,19 @@ public class Player implements IUpdate, IUpdateUI
         projectileTexture.height(6);
         this.transform = transform;
         collision = new Collision(this.transform);
+
+        if(playerNumber == 1)
+        {
+            winCountFilePath = "wins1.txt";
+        }
+        else if(playerNumber == 2)
+        {
+            winCountFilePath = "wins2.txt";
+        }
+        else if(playerNumber == 3)
+        {
+            winCountFilePath = "wins3.txt";
+        }
 
 
         playerTextures.add(LoadTexture("Textures/player1.png"));
@@ -303,6 +323,8 @@ public class Player implements IUpdate, IUpdateUI
 
         gameClient.RequestMapState();
         gameClient.RequestEnemies();
+
+        GetWinCount();
 
         while (!gameClient.allPlayersConnected)
         {
@@ -663,6 +685,7 @@ public class Player implements IUpdate, IUpdateUI
         if(state == 1)
         {
             gameState = GameState.Won;
+            SaveWinCount();
         }
         if(state == 0)
         {
@@ -683,6 +706,46 @@ public class Player implements IUpdate, IUpdateUI
     public void UpdateTime(float time)
     {
         this.time = time;
+    }
+
+    public void GetWinCount()
+    {
+        try
+        {
+            File file = new File(winCountFilePath);
+            Scanner fileReader = new Scanner(file);
+
+            if (file.exists())
+            {
+                winCount = fileReader.nextInt();
+                fileReader.close();
+            }
+            else
+            {
+                System.out.println("The file does not exist.");
+            }
+        }
+        catch (FileNotFoundException e)
+        {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+
+    }
+
+    public void SaveWinCount()
+    {
+        try
+        {
+            FileWriter fileWriter = new FileWriter(winCountFilePath, false);
+            fileWriter.write("" + (winCount+1));
+            fileWriter.close();
+
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -708,5 +771,6 @@ public class Player implements IUpdate, IUpdateUI
         int minutes = (int) (time / 60);
         int seconds = (int) (time - (minutes * 60));
         DrawText(Raylib.TextFormat( + minutes + ":" + seconds), 1920/2 - 100, 100, 100, WHITE);
+        DrawText(Raylib.TextFormat( "Wins: " + winCount), 150, 100, 100, WHITE);
     }
 }
